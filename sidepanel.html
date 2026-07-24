@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>kon</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <!-- environment the glass refracts: blurred cover + drifting warm blobs -->
+  <div class="bg">
+    <div id="bgArt" class="bg-art"></div>
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+    <div class="bg-tint"></div>
+  </div>
+
+  <main class="app">
+    <header class="glass topbar">
+      <div class="brand">
+        <!-- fox head: diamond face + two ear triangles. Each ear's base ends sit
+             exactly on the face outline (one on the flat top, one on the cheek
+             edge) so ear and head fuse into one silhouette, no seam. -->
+        <svg class="logo" viewBox="0 0 32 32" role="img" aria-label="fox">
+          <g fill="currentColor">
+            <path d="M5 0.8 L14 10 L5.23 14.03 Z"/>
+            <path d="M27 0.8 L18 10 L26.77 14.03 Z"/>
+            <path d="M10.5 10 L21.5 10 L30 16.5 L16 30 L2 16.5 Z"/>
+          </g>
+          <path fill="rgba(255,255,255,0.5)" d="M5.92 3.04 L12.22 9.48 L6.09 12.31 Z"/>
+          <path fill="rgba(255,255,255,0.5)" d="M26.08 3.04 L19.78 9.48 L25.91 12.31 Z"/>
+        </svg>
+      </div>
+      <form id="addForm" class="add">
+        <input id="addInput" type="text" placeholder="Paste a link…" autocomplete="off" spellcheck="false">
+        <button id="addBtn" type="submit" title="Add to collection" data-icon="plus"></button>
+      </form>
+      <div id="toast" class="toast"></div>
+    </header>
+
+    <div class="glass collbar">
+      <!-- custom listbox: a native <select> popup is OS-drawn, so it can't be glass -->
+      <button id="collBtn" class="coll-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <span id="collLabel" class="coll-label">…</span>
+        <span class="caret" data-icon="chevron-down"></span>
+      </button>
+      <button id="newColl" class="coll-btn" title="New collection" data-icon="plus"></button>
+      <button id="renColl" class="coll-btn" title="Rename this collection" data-icon="pencil"></button>
+      <button id="impColl" class="coll-btn" title="Import — paste a list of links / BV ids" data-icon="download"></button>
+      <button id="expColl" class="coll-btn" title="Export — copy this collection to clipboard" data-icon="copy"></button>
+      <button id="delColl" class="coll-btn danger" title="Delete this collection" data-icon="trash"></button>
+    </div>
+
+    <section id="library" class="library"></section>
+
+    <footer id="player" class="glass player hidden">
+      <div class="np">
+        <div id="npCover" class="np-cover" title="Open source page"></div>
+        <div class="np-meta">
+          <div id="npTitle" class="np-title"><span>Nothing playing</span></div>
+          <div id="npArtist" class="np-artist"></div>
+        </div>
+      </div>
+      <div class="seek">
+        <span id="tCur" class="t">0:00</span>
+        <input id="seek" class="seekbar" type="range" min="0" max="1000" value="0">
+        <span id="tDur" class="t">0:00</span>
+      </div>
+      <!-- transport and volume share a row: the five buttons leave ~40% of a
+           narrow panel empty, and the volume slider absorbs whatever is left -->
+      <div class="transport">
+        <div class="controls">
+          <button id="btnShuffle" class="ctl small" title="Shuffle" data-icon="shuffle"></button>
+          <button id="btnPrev" class="ctl" title="Previous" data-icon="skip-back"></button>
+          <button id="btnPlay" class="ctl play" title="Play/Pause" data-icon="play"></button>
+          <button id="btnNext" class="ctl" title="Next" data-icon="skip-forward"></button>
+          <button id="btnRepeat" class="ctl small" title="Repeat" data-icon="repeat"></button>
+        </div>
+        <div class="vol">
+          <span class="vico" data-icon="volume"></span>
+          <input id="vol" class="volbar" type="range" min="0" max="100" value="100">
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- floated out of .app: the glass panels clip their children (overflow:hidden) -->
+  <div id="collMenu" class="glass menu hidden" role="listbox"></div>
+
+  <div id="modal" class="modal hidden">
+    <div class="glass modal-card">
+      <div class="modal-title">Import songs</div>
+      <div class="modal-sub">Paste Bilibili links / BV ids or direct audio URLs — one per line. Added to the current collection.</div>
+      <textarea id="importText" class="modal-text" spellcheck="false" autocomplete="off"
+        placeholder="BV1ZMR3YBE4m&#10;https://www.bilibili.com/video/BV1xx411c7mD&#10;https://example.com/song.mp3"></textarea>
+      <div class="modal-actions">
+        <button id="importCancel" class="coll-btn" type="button">Cancel</button>
+        <button id="importGo" class="coll-btn primary" type="button">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="nameModal" class="modal hidden">
+    <form id="nameForm" class="glass modal-card">
+      <div id="nameTitle" class="modal-title">New collection</div>
+      <input id="nameInput" class="modal-input" type="text" spellcheck="false" autocomplete="off"
+        placeholder="Collection name">
+      <div class="modal-actions">
+        <button id="nameCancel" class="coll-btn" type="button">Cancel</button>
+        <button id="nameGo" class="coll-btn primary" type="submit">Create</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="lib/icons.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

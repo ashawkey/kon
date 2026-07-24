@@ -1,0 +1,14 @@
+# Chrome Web Store metadata
+_metadata/
+
+# Kia agent sessions
+.kia/
+
+# Packed extension
+*.crx
+*.pem
+*.zip
+
+# OS
+Thumbs.db
+.DS_Store
