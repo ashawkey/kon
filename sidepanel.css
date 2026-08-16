@@ -314,6 +314,14 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   box-shadow: inset 0 1px 0 var(--glass-hi), 0 4px 14px rgba(40,0,10,0.35);
 }
 .ctl.play:hover { background: var(--accent-soft); }
+.ctl:disabled { cursor: default; }
+.ctl:disabled:hover { background: none; transform: none; }
+/* a download in flight: the arrow keeps dipping until the file lands */
+.ctl.busy { color: var(--accent); }
+.ctl.busy .icon { animation: dl-pulse 1.1s ease-in-out infinite; }
+@keyframes dl-pulse {
+  50% { opacity: 0.35; transform: translateY(2px); }
+}
 
 /* takes the row's leftover width, and gives it back as the panel narrows */
 .vol { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }

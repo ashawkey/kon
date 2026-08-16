@@ -444,6 +444,34 @@ async function next() {
   await leaveCurrent(nextIndex());
 }
 
+// ── download ────────────────────────────────────────────────────────────
+// Resolves a fresh stream URL for a track (default: the one playing) without
+// touching playback state. Only the URL is returned — the bytes are fetched by
+// the panel, because an MV3 service worker has no URL.createObjectURL and so
+// can't hand a downloaded blob to anything.
+async function streamFor(id) {
+  let track = state.queue[state.index];
+  if (id) {
+    track = state.queue.find((t) => trackId(t) === id);
+    if (!track) {
+      const { cols } = await getCollections();
+      for (const list of Object.values(cols)) {
+        const hit = list.find((t) => trackId(t) === id);
+        if (hit) { track = hit; break; }
+      }
+    }
+  }
+  if (!track) throw new Error("Nothing playing.");
+  const source = track.source || "bilibili";
+  if (source === "direct") return { url: track.url, source, title: track.title, author: track.author };
+  if (source !== "bilibili") throw new Error("This source can't be downloaded.");
+  // same Referer/Origin rewrite playback depends on — without it the CDN 403s
+  const ruleError = await headerRuleReady;
+  if (ruleError) throw ruleError;
+  const url = await resolveAudioUrl(track.bvid, track.cid);
+  return { url, source, title: track.title, author: track.author };
+}
+
 // ── message router ──────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   // events from offscreen audio host — must reload state first (SW may have slept)
@@ -504,6 +532,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             await playIndex(state.index, state.position || 0);
           }
           sendResponse({ ok: true }); return;
+        case "streamUrl": sendResponse(await streamFor(msg.id)); return;
         case "next": await next(); sendResponse({ ok: true }); return;
         case "prev": await leaveCurrent(prevIndex()); sendResponse({ ok: true }); return;
         case "seek":

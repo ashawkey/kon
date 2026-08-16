@@ -20,6 +20,7 @@ while you browse.
 4. Click the extension's toolbar icon → the **side panel** opens
 5. Paste a supported media link or direct audio URL, then click **＋**
 6. Click the cover to play
+7. Use the ⭳ button right of the volume slider to save the playing track as an audio file
 
 ## Supported sources
 

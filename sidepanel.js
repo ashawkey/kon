@@ -40,11 +40,15 @@ function openOriginal(t) {
   if (url) chrome.tabs.create({ url });
 }
 
+let toastTimer = 0;
 function toast(text, isErr) {
   const t = $("toast");
   t.textContent = text;
   t.className = "toast show" + (isErr ? " err" : "");
-  setTimeout(() => (t.className = "toast"), 2200);
+  // each message gets the full dwell: an earlier timer would otherwise hide a
+  // just-updated one (download progress replaces the text many times)
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.className = "toast"), 2200);
 }
 
 function applySnapshot(snap) {
@@ -407,6 +411,87 @@ seek.addEventListener("change", () => {
   seeking = false;
 });
 $("vol").addEventListener("input", (e) => bg({ cmd: "volume", v: e.target.value / 100 }));
+
+// ── download the playing track ──────────────────────────────────────────
+// The worker only resolves the URL; the bytes are pulled here because a blob
+// URL can only be minted in a document. This page may fetch the CDN
+// cross-origin (host_permissions) and the worker's header rule signs it.
+const BAD_FILENAME = /[\\/:*?"<>|\x00-\x1f]+/g;
+function safeName(s) {
+  return String(s || "").replace(BAD_FILENAME, " ").replace(/\s+/g, " ").trim().slice(0, 100);
+}
+
+// Bilibili hands out a DASH audio segment (.m4s) that is really fMP4/AAC, so
+// it is saved as .m4a; a direct URL already carries the right extension.
+function fileExt(url, source) {
+  if (source === "bilibili") return "m4a";
+  try {
+    const m = new URL(url).pathname.match(/\.([a-z0-9]{2,5})$/i);
+    if (m) return m[1].toLowerCase();
+  } catch {}
+  return "m4a";
+}
+
+async function fetchWithProgress(url, onProgress) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const type = res.headers.get("content-type") || "audio/mp4";
+  const total = Number(res.headers.get("content-length")) || 0;
+  if (!res.body) return res.blob();
+  const reader = res.body.getReader();
+  const chunks = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    got += value.length;
+    onProgress(got, total);
+  }
+  return new Blob(chunks, { type });
+}
+
+function saveBlob(blob, filename) {
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // the download reads the blob asynchronously — revoking immediately can kill it
+  setTimeout(() => URL.revokeObjectURL(href), 60_000);
+}
+
+let downloading = false;
+$("btnDownload").addEventListener("click", async () => {
+  if (downloading) return;
+  const btn = $("btnDownload");
+  const r = await bg({ cmd: "streamUrl" });
+  if (!r || r.error) { toast(r?.error || "Nothing playing", true); return; }
+
+  downloading = true;
+  btn.disabled = true;
+  btn.classList.add("busy");
+  toast("Downloading…");
+  try {
+    let shown = -1;
+    const blob = await fetchWithProgress(r.url, (got, total) => {
+      // toast() also restarts its own hide timer, so a long download stays visible
+      const pct = total ? Math.floor((got / total) * 10) * 10 : -1;
+      if (pct !== shown) { shown = pct; toast(pct < 0 ? "Downloading…" : `Downloading ${pct}%…`); }
+    });
+    const name = `${safeName(r.title) || "track"}${r.author ? ` - ${safeName(r.author)}` : ""}.${fileExt(r.url, r.source)}`;
+    saveBlob(blob, name);
+    toast(`Saved ${name} ✓`);
+  } catch (e) {
+    toast(`Download failed — ${e.message}`, true);
+  } finally {
+    downloading = false;
+    btn.disabled = false;
+    btn.classList.remove("busy");
+  }
+});
 
 // ── init ─────────────────────────────────────────────────────────────────
 (async () => {
